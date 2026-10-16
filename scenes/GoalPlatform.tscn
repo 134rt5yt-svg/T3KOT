@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Material" path="res://resources/stone_material.tres" id="stone_m"]
+
+[ext_resource type="Material" path="res://resources/trim_material.tres" id="trim_m"]
+
+[sub_resource type="BoxShape3D" id="shape"]
+size = Vector3(5, 0.5, 5)
+
+[sub_resource type="BoxMesh" id="deck"]
+material = ExtResource("stone_m")
+size = Vector3(5, 0.5, 5)
+
+[sub_resource type="BoxMesh" id="beam"]
+material = ExtResource("trim_m")
+size = Vector3(4, 0.35, 4)
+
+[node name="GoalPlatform" type="StaticBody3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("shape")
+
+[node name="Deck" type="MeshInstance3D" parent="."]
+mesh = SubResource("deck")
+
+[node name="Beam" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.42, 0)
+mesh = SubResource("beam")
+

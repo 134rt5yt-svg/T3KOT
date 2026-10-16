@@ -1,0 +1,200 @@
+[gd_scene format=3 uid="uid://raut1ta8tpu5"]
+
+[ext_resource type="Script" uid="uid://ddtfo6cfr01dm" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://sxjturl12f6u" path="res://scripts/Ending.gd" id="2_ending"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/StartPlatform.tscn" id="4_start"]
+[ext_resource type="PackedScene" path="res://scenes/Platform.tscn" id="5_platform"]
+[ext_resource type="PackedScene" path="res://scenes/GoalPlatform.tscn" id="6_goal"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.55, 0.58, 0.62, 1)
+sky_horizon_color = Color(0.82, 0.82, 0.85, 1)
+ground_bottom_color = Color(0.45, 0.45, 0.5, 1)
+ground_horizon_color = Color(0.82, 0.82, 0.85, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+ambient_light_energy = 1.2
+fog_enabled = true
+fog_light_color = Color(0.8, 0.8, 0.85, 1)
+fog_density = 0.08
+fog_sky_affect = 0.9
+
+[sub_resource type="BoxShape3D" id="goal_trigger"]
+size = Vector3(5, 6, 5)
+
+[node name="Main" type="Node3D" unique_id=540942946]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1715579138]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=714300742]
+transform = Transform3D(0.81915224, 0.43938476, -0.36868778, 0, 0.6427878, 0.76604426, 0.57357615, -0.6275069, 0.5265411, -0.081656456, 18.025562, -20.204256)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="StartPlatform" parent="." unique_id=1691430304 instance=ExtResource("4_start")]
+
+[node name="Platform01" parent="." unique_id=1584367523 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.036, 3.612, -7.72)
+
+[node name="Platform02" parent="." unique_id=1679949561 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.04, 5.202, -10.835)
+
+[node name="Platform03" parent="." unique_id=840928776 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.955, 6.802, -14.102)
+
+[node name="Platform04" parent="." unique_id=304906345 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.138, 8.319, -17.221)
+
+[node name="Platform05" parent="." unique_id=1036267479 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.927, 10.062, -20.627)
+
+[node name="Platform06" parent="." unique_id=1447425026 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.913, 11.696, -23.986)
+
+[node name="Platform07" parent="." unique_id=1370089974 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.096, 11.099908, -28.611063)
+
+[node name="Platform08" parent="." unique_id=42330186 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 0.79129034, -0.61144054, 0, 0.61144054, 0.79129034, -1.905, 12.159451, -33.07504)
+
+[node name="Platform09" parent="." unique_id=1805361721 instance=ExtResource("5_platform")]
+transform = Transform3D(0.56312793, -0.70157564, -0.43666753, 0, 0.5284167, -0.8489852, 0.8263697, 0.47808728, 0.2975662, 1.957, 16.348, -33.362)
+
+[node name="Platform10" parent="." unique_id=722670419 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.039, 17.988, -36.937)
+
+[node name="Platform11" parent="." unique_id=2072361680 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.056, 19.628, -40.05)
+
+[node name="Platform12" parent="." unique_id=351960981 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.099, 21.191, -43.211)
+
+[node name="Platform13" parent="." unique_id=1672413321 instance=ExtResource("5_platform")]
+transform = Transform3D(0.992362, 0.12335979, 0, -0.12335979, 0.992362, 0, 0, 0, 1, -8.418787, 21.566809, -47.41739)
+
+[node name="Platform14" parent="." unique_id=1014564824 instance=ExtResource("5_platform")]
+transform = Transform3D(0.9789448, 0, 0.20412527, 0, 1, 0, -0.20412527, 0, 0.9789448, -11.757021, 22.068775, -52.728035)
+
+[node name="Platform15" parent="." unique_id=1341173755 instance=ExtResource("5_platform")]
+transform = Transform3D(0.95265156, -0.110377856, -0.28332254, 0.105798095, 0.9938897, -0.031464793, 0.28506437, 0, 0.9585084, 1.987, 25.914, -53.157)
+
+[node name="Platform16" parent="." unique_id=860604430 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.02, 27.669, -56.255)
+
+[node name="Platform17" parent="." unique_id=580200129 instance=ExtResource("5_platform")]
+transform = Transform3D(0.044879906, -1.1220633, -0.0063511706, 1.9742411, 0.025520163, -0.0031818552, 0.004797924, -0.0051473915, 1.3686652, 1.4465098, 29.82636, -59.429226)
+
+[node name="Platform18" parent="." unique_id=1647977462 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.963, 30.882, -62.788)
+
+[node name="Platform19" parent="." unique_id=51595923 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.194, 32.379, -65.879)
+
+[node name="Platform20" parent="." unique_id=1430123045 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.089, 34.056, -69.208)
+
+[node name="Platform21" parent="." unique_id=1852464604 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.926, 35.567, -72.736)
+
+[node name="Platform22" parent="." unique_id=1646549966 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.127, 37.124, -75.699)
+
+[node name="Platform23" parent="." unique_id=2052021756 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.93, 38.712, -79.169)
+
+[node name="Platform24" parent="." unique_id=848755153 instance=ExtResource("5_platform")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.953, 40.412, -82.279)
+
+[node name="Platform25" parent="." unique_id=938489857 instance=ExtResource("5_platform")]
+transform = Transform3D(0.9452618, -0.32204616, 0.05259669, 0.26749274, 0.85705525, 0.44034526, -0.18688975, -0.4021723, 0.8962866, -4.1650133, 24.422583, -53.798992)
+
+[node name="GoalPlatform" parent="." unique_id=985091815 instance=ExtResource("6_goal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 42.012, -87.079)
+
+[node name="GoalTrigger" type="Area3D" parent="GoalPlatform" unique_id=229086113]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GoalPlatform/GoalTrigger" unique_id=152969848]
+shape = SubResource("goal_trigger")
+
+[node name="Player" parent="." unique_id=534190237 instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 19.176815, 0)
+
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=734394351]
+volume_db = -6.0
+
+[node name="Ending" type="Node" parent="." unique_id=1318671419]
+script = ExtResource("2_ending")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=791275164]
+
+[node name="Prompt" type="Label" parent="UI" unique_id=598317885]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 90.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Subtitles" type="Label" parent="UI" unique_id=1679692542]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_right = -40.0
+offset_bottom = -60.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+vertical_alignment = 2
+autowrap_mode = 3
+
+[node name="EndLabel" type="Label" parent="UI" unique_id=242266461]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.05, 0.05, 0.07, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 64
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Flash" type="ColorRect" parent="UI" unique_id=1747383027]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Hint" type="Label" parent="UI" unique_id=1512933127]
+modulate = Color(1, 1, 1, 0.85)
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 3.0
+offset_top = 693.0
+offset_right = 3.0
+offset_bottom = 719.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "WASD: движение  Пробел: прыжок, жми ПРОБЕЛ ещё раз если залип на краю Esc: мышь"
+horizontal_alignment = 1

@@ -1,0 +1,7 @@
+[gd_resource type="SystemFont" format=3]
+
+[resource]
+font_names = PackedStringArray("Liberation Mono", "DejaVu Sans Mono", "Ubuntu Mono", "Consolas", "monospace")
+antialiasing = 0
+hinting = 2
+subpixel_positioning = 0

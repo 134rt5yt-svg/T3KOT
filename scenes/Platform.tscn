@@ -1,0 +1,30 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Material" path="res://resources/wood_material.tres" id="wood_m"]
+
+[ext_resource type="Material" path="res://resources/trim_material.tres" id="trim_m"]
+
+[sub_resource type="BoxShape3D" id="shape"]
+size = Vector3(3.4, 0.5, 3.4)
+
+[sub_resource type="BoxMesh" id="deck"]
+material = ExtResource("wood_m")
+size = Vector3(3.4, 0.5, 3.4)
+
+[sub_resource type="BoxMesh" id="beam"]
+material = ExtResource("trim_m")
+size = Vector3(2.6, 0.3, 2.6)
+
+[node name="Platform" type="StaticBody3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("shape")
+
+[node name="Deck" type="MeshInstance3D" parent="."]
+mesh = SubResource("deck")
+
+[node name="Beam" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
+mesh = SubResource("beam")
+cast_shadow = 0
+

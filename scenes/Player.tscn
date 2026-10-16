@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/Player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/CameraBob.gd" id="2_bob"]
+[ext_resource type="Script" path="res://scripts/WallJump.gd" id="3_wall"]
+
+[sub_resource type="CapsuleShape3D" id="shape_body"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("shape_body")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+fov = 80.0
+current = true
+far = 50.0
+script = ExtResource("2_bob")
+
+[node name="WallJump" type="Node" parent="."]
+script = ExtResource("3_wall")
