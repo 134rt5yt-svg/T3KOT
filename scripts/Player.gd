@@ -13,18 +13,27 @@ const TouchControls := preload("res://scripts/TouchControls.gd")
 var frozen := false
 var last_safe_position := Vector3.ZERO
 var pitch := 0.0
+var _air_jumps_used := 0
+const MAX_AIR_JUMPS := 1
 
 func _ready() -> void:
 	add_to_group("player")
 	last_safe_position = global_position
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if DisplayServer.is_touchscreen_available():
+	if OS.has_feature("mobile") or DisplayServer.is_touchscreen_available():
 		add_child(TouchControls.new())
+
+func apply_touch_look(relative: Vector2) -> void:
+	# Прямой путь для сенсорного обзора; не создаём искусственные mouse events.
+	var scale_factor := get_viewport().get_visible_rect().size.x / 1280.0
+	var sens := MOUSE_SENSITIVITY * clampf(scale_factor, 0.65, 1.6) * 1.4
+	rotate_y(-relative.x * sens)
+	pitch = clampf(pitch - relative.y * sens, deg_to_rad(-85.0), deg_to_rad(85.0))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
-		pitch = clampf(pitch - event.relative.y * MOUSE_SENSITIVITY, deg_to_rad(-89.0), deg_to_rad(89.0))
+		pitch = clampf(pitch - event.relative.y * MOUSE_SENSITIVITY, deg_to_rad(-85.0), deg_to_rad(85.0))
 	elif event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -45,10 +54,16 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, ACCEL * delta)
 		velocity.z = move_toward(velocity.z, 0.0, ACCEL * delta)
-	if not frozen and Input.is_action_just_pressed("jump") and is_on_floor():
-		velocity.y = JUMP_VELOCITY
+	if not frozen and Input.is_action_just_pressed("jump"):
+		if is_on_floor():
+			velocity.y = JUMP_VELOCITY
+			_air_jumps_used = 0
+		elif _air_jumps_used < MAX_AIR_JUMPS:
+			velocity.y = JUMP_VELOCITY
+			_air_jumps_used += 1
 	move_and_slide()
 	if is_on_floor():
+		_air_jumps_used = 0
 		last_safe_position = global_position
 
 func respawn() -> void:

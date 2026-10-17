@@ -14,7 +14,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="t3kot"
+config/name="T3KOT"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.png"
@@ -23,8 +23,6 @@ config/icon="res://icon.png"
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
@@ -71,6 +69,5 @@ interact={
 
 [rendering]
 
-lights_and_shadows/directional_shadow/size=2048
-renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=2048

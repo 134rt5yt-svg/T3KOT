@@ -1,86 +1,89 @@
 extends CanvasLayer
-## Сенсорное управление для телефонов: плавающий джойстик слева,
-## кнопка прыжка справа снизу, обзор — перетаскиванием по правой половине экрана.
-## Создаётся целиком из кода и подаёт нажатия через Input.action_press,
-## так что Player.gd работает без изменений.
+## Существующее сенсорное управление: джойстик слева, прыжок справа,
+## обзор отдельным пальцем в правой области. Не генерирует события мыши:
+## камера получает дельту напрямую, поэтому джойстик не вращает обзор.
 
-const STICK_RADIUS := 130.0   # радиус базы джойстика
+const STICK_RADIUS := 130.0
 const STICK_DEAD := 0.15
 const JUMP_RADIUS := 96.0
-const LOOK_SENS := 1.6        # множитель чувствительности обзора относительно мыши
+const LOOK_SENS := 0.0035 # радианы на пиксель, масштабируется с разрешением
 
-var _stick_index := -1        # палец, который ведёт джойстик
-var _look_index := -1         # палец, который ведёт обзор
-var _jump_index := -1         # палец на кнопке прыжка
+var _stick_index := -1
+var _look_index := -1
+var _jump_index := -1
 var _stick_origin := Vector2.ZERO
 var _stick_pos := Vector2.ZERO
 var _jump_center := Vector2.ZERO
 var _jump_pressed := false
 var _hud: Control
+var _player: CharacterBody3D
+var _screen_size := Vector2.ZERO
 
 func _ready() -> void:
 	layer = 10
+	_player = get_parent() as CharacterBody3D
 	_hud = Control.new()
-	_hud.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.draw.connect(_draw_hud)
 	add_child(_hud)
-	get_viewport().size_changed.connect(_update_jump_center)
-	_update_jump_center()
+	get_viewport().size_changed.connect(_update_layout)
+	_update_layout()
 
-func _update_jump_center() -> void:
-	var size := _hud.get_viewport_rect().size
-	_jump_center = Vector2(size.x - JUMP_RADIUS - 60.0, size.y - JUMP_RADIUS - 80.0)
+func _update_layout() -> void:
+	_screen_size = get_viewport().get_visible_rect().size
+	# Кнопка прыжка располагается с отступами в процентах от размера экрана.
+	_jump_center = Vector2(_screen_size.x * 0.86, _screen_size.y * 0.80)
 	_hud.queue_redraw()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			if event.position.x < _hud.get_viewport_rect().size.x * 0.5 and _stick_index == -1:
-				_stick_index = event.index
-				_stick_origin = event.position
-				_stick_pos = event.position
-				_hud.queue_redraw()
-			elif event.position.distance_to(_jump_center) < JUMP_RADIUS * 1.3:
-				_jump_index = event.index
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			# Прыжок проверяем первым, чтобы он не был принят за джойстик
+			# на телефонах с узким экраном.
+			if touch.position.distance_to(_jump_center) <= JUMP_RADIUS * 1.25 and _jump_index == -1:
+				_jump_index = touch.index
 				_jump_pressed = true
 				Input.action_press("jump")
 				_hud.queue_redraw()
-			elif _look_index == -1:
-				_look_index = event.index
+			elif touch.position.x < _screen_size.x * 0.48 and _stick_index == -1:
+				_stick_index = touch.index
+				_stick_origin = touch.position
+				_stick_pos = touch.position
+				_hud.queue_redraw()
+			elif touch.position.x >= _screen_size.x * 0.48 and _look_index == -1:
+				_look_index = touch.index
 		else:
-			if event.index == _stick_index:
+			if touch.index == _stick_index:
 				_stick_index = -1
 				_apply_move(Vector2.ZERO)
 				_hud.queue_redraw()
-			elif event.index == _jump_index:
+			elif touch.index == _jump_index:
 				_jump_index = -1
 				_jump_pressed = false
 				Input.action_release("jump")
 				_hud.queue_redraw()
-			elif event.index == _look_index:
+			elif touch.index == _look_index:
 				_look_index = -1
-	elif event is InputEventScreenDrag and event.index == _stick_index:
+	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
-		var offset := drag.position - _stick_origin
-		if offset.length() > STICK_RADIUS:
-			# база подтягивается за пальцем, как в современных шутерах
-			_stick_origin = event.position - offset.normalized() * STICK_RADIUS
-			offset = offset.normalized() * STICK_RADIUS
-		_stick_pos = _stick_origin + offset
-		_apply_move(offset / STICK_RADIUS)
-		_hud.queue_redraw()
-	elif event is InputEventScreenDrag and event.index == _look_index:
-		var motion := InputEventMouseMotion.new()
-		motion.relative = (event as InputEventScreenDrag).relative * LOOK_SENS
-		Input.parse_input_event(motion)
+		if drag.index == _stick_index:
+			var offset: Vector2 = drag.position - _stick_origin
+			if offset.length() > STICK_RADIUS:
+				offset = offset.normalized() * STICK_RADIUS
+			_stick_pos = _stick_origin + offset
+			_apply_move(offset / STICK_RADIUS)
+			_hud.queue_redraw()
+		elif drag.index == _look_index and _player != null:
+			# Только палец, захваченный в правой зоне, поворачивает камеру.
+			_player.apply_touch_look(drag.relative)
 
 func _apply_move(v: Vector2) -> void:
 	for action in ["move_left", "move_right", "move_forward", "move_back"]:
 		Input.action_release(action)
 	if v.length() < STICK_DEAD:
 		return
-	# оси как у Player.gd: x — влево/вправо, y — вперёд/назад
 	var strength := clampf(v.length(), 0.0, 1.0)
 	var dir := v.normalized()
 	if dir.x < -0.2:
