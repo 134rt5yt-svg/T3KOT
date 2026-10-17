@@ -6,21 +6,25 @@ const GRAVITY := 18.0
 const JUMP_VELOCITY := 10.5
 const MOUSE_SENSITIVITY := 0.0025
 
+const TouchControls := preload("res://scripts/TouchControls.gd")
+
 @onready var camera: Camera3D = $Camera3D
 
 var frozen := false
 var last_safe_position := Vector3.ZERO
+var pitch := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
 	last_safe_position = global_position
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if DisplayServer.is_touchscreen_available():
+		add_child(TouchControls.new())
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
-		camera.rotate_x(-event.relative.y * MOUSE_SENSITIVITY)
-		camera.rotation.x = clampf(camera.rotation.x, deg_to_rad(-89.0), deg_to_rad(89.0))
+		pitch = clampf(pitch - event.relative.y * MOUSE_SENSITIVITY, deg_to_rad(-89.0), deg_to_rad(89.0))
 	elif event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -28,6 +32,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
+	camera.rotation.x = pitch + camera.pitch_offset
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	var input_dir := Vector2.ZERO
