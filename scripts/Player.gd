@@ -8,20 +8,52 @@ const MOUSE_SENSITIVITY := 0.0025
 
 const TouchControls := preload("res://scripts/TouchControls.gd")
 
+const SND_LAND_LIGHT := preload("res://sounds/land_light.ogg")
+const SND_LAND_MEDIUM := preload("res://sounds/land_medium.ogg")
+const SND_LAND_HEAVY := preload("res://sounds/land_heavy.ogg")
+const SND_JUMP := preload("res://sounds/jump.ogg")
+
 @onready var camera: Camera3D = $Camera3D
 
 var frozen := false
 var last_safe_position := Vector3.ZERO
 var pitch := 0.0
-var _air_jumps_used := 0
-const MAX_AIR_JUMPS := 1
+var _was_on_floor := true
+var _fall_speed := 0.0
+var _sfx_land: AudioStreamPlayer
+var _sfx_jump: AudioStreamPlayer
 
 func _ready() -> void:
 	add_to_group("player")
 	last_safe_position = global_position
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if OS.has_feature("mobile") or DisplayServer.is_touchscreen_available():
+		# Иначе тач эмулирует мышь, и джойстик вращает камеру.
+		Input.emulate_mouse_from_touch = false
 		add_child(TouchControls.new())
+	_sfx_land = AudioStreamPlayer.new()
+	_sfx_land.bus = "Master"
+	add_child(_sfx_land)
+	_sfx_jump = AudioStreamPlayer.new()
+	_sfx_jump.bus = "Master"
+	add_child(_sfx_jump)
+
+func _play_land() -> void:
+	# Сила удара выбирает звук и его громкость.
+	var impact := clampf(_fall_speed / 20.0, 0.0, 1.0)
+	if impact < 0.001:
+		return
+	_sfx_land.stream = SND_LAND_LIGHT if impact < 0.35 \
+		else (SND_LAND_MEDIUM if impact < 0.7 else SND_LAND_HEAVY)
+	_sfx_land.volume_db = lerpf(-16.0, -2.0, impact)
+	_sfx_land.pitch_scale = randf_range(0.94, 1.06)
+	_sfx_land.play()
+
+func _play_jump() -> void:
+	_sfx_jump.stream = SND_JUMP
+	_sfx_jump.volume_db = -10.0
+	_sfx_jump.pitch_scale = randf_range(1.25, 1.4)
+	_sfx_jump.play()
 
 func apply_touch_look(relative: Vector2) -> void:
 	# Прямой путь для сенсорного обзора; не создаём искусственные mouse events.
@@ -54,17 +86,18 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, ACCEL * delta)
 		velocity.z = move_toward(velocity.z, 0.0, ACCEL * delta)
-	if not frozen and Input.is_action_just_pressed("jump"):
-		if is_on_floor():
-			velocity.y = JUMP_VELOCITY
-			_air_jumps_used = 0
-		elif _air_jumps_used < MAX_AIR_JUMPS:
-			velocity.y = JUMP_VELOCITY
-			_air_jumps_used += 1
+	if not frozen and Input.is_action_just_pressed("jump") and is_on_floor():
+		velocity.y = JUMP_VELOCITY
+		_play_jump()
 	move_and_slide()
 	if is_on_floor():
-		_air_jumps_used = 0
 		last_safe_position = global_position
+		if not _was_on_floor:
+			_play_land()
+		_fall_speed = 0.0
+	else:
+		_fall_speed = maxf(_fall_speed, -velocity.y)
+	_was_on_floor = is_on_floor()
 
 func respawn() -> void:
 	Engine.time_scale = 1.0

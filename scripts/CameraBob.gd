@@ -1,21 +1,22 @@
 extends Camera3D
 
-@export var bob_amplitude := 0.06
-@export var bob_frequency := 9.0
-@export var sway := 0.03
-@export var breath_amplitude := 0.012
+@export var bob_amplitude := 0.09
+@export var bob_frequency := 10.0
+@export var sway := 0.05
+@export var breath_amplitude := 0.02
 @export var breath_frequency := 1.6
-@export var land_dip_max := 0.22
-@export var strafe_roll_deg := 3.5
-@export var fall_fov_max := 7.0
+@export var land_dip_max := 0.34
+@export var strafe_roll_deg := 5.5
+@export var fall_fov_max := 9.0
 
-@export var jump_kick_deg := 3.5      # клёв камеры вверх при прыжке
-@export var land_pitch_deg := 4.0     # клёв вниз при приземлении
-@export var jump_fov_kick := 4.0      # FOV-ручка при прыжке
+@export var jump_kick_deg := 5.5      # клёв камеры вверх при прыжке
+@export var land_pitch_deg := 6.0     # клёв вниз при приземлении
+@export var jump_fov_kick := 6.5      # FOV-ручка при прыжке
 @export var strafe_lag := 0.09        # боковой снос камеры при стрейфе
-@export var strafe_lag_max := 0.12
-@export var turn_sway_deg := 1.2      # небольшой наклон при повороте мыши
-@export var step_bump := 0.02         # толчок вниз на каждый "шаг" боба
+@export var strafe_lag_max := 0.16
+@export var turn_sway_deg := 2.0      # небольшой наклон при повороте мыши
+@export var step_bump := 0.03         # толчок вниз на каждый "шаг" боба
+@export var shake_max := 0.14         # амплитуда тряски при жёстком приземлении
 
 var pitch_offset := 0.0
 
@@ -35,11 +36,20 @@ var _lag_x := 0.0
 var _prev_yaw := 0.0
 var _yaw_vel := 0.0
 var _last_step_sign := 1.0
+var _shake := 0.0
 
 func _ready() -> void:
 	_base_position = position
 	_base_fov = fov
 	_prev_yaw = (get_parent() as Node3D).rotation.y
+
+## Кик камеры при отскоке от стены: клёв вверх, FOV-пинок,
+## тряска и крен в сторону от стены (side = -1 слева / 1 справа).
+func wall_kick(side: float) -> void:
+	_pitch_kick_vel = deg_to_rad(jump_kick_deg) * 9.0
+	_fov_kick += jump_fov_kick * 1.4
+	_shake = minf(_shake + 0.09, shake_max)
+	_roll += -side * 0.14
 
 func _process(delta: float) -> void:
 	var body := get_parent() as CharacterBody3D
@@ -52,6 +62,8 @@ func _process(delta: float) -> void:
 		var impact := minf(_prev_fall_speed * 0.02, land_dip_max)
 		_dip_velocity = -impact * 8.0
 		_pitch_kick_vel = -deg_to_rad(land_pitch_deg) * (impact / land_dip_max) * 8.0
+		# Жёсткое приземление — заметная короткая тряска.
+		_shake = minf(_shake + impact * 0.55, shake_max)
 	_was_on_floor = body.is_on_floor()
 	if body.is_on_floor():
 		_prev_fall_speed = 0.0
@@ -90,6 +102,14 @@ func _process(delta: float) -> void:
 	var local_vel := (body.global_transform.basis.inverse() * body.velocity)
 	_lag_x = lerpf(_lag_x, clampf(-local_vel.x / 6.0 * strafe_lag_max, -strafe_lag_max, strafe_lag_max), minf(10.0 * delta, 1.0))
 	target_x += _lag_x
+
+	# --- тряска: быстрые вертикально-горизонтальные дёргания с затуханием ---
+	if _shake > 0.001:
+		var t := Time.get_ticks_msec() / 1000.0
+		target_x += sin(t * 73.0) * _shake
+		target_y += sin(t * 97.0 + 1.7) * _shake * 0.7
+		_roll += sin(t * 61.0 + 0.9) * _shake * 0.35
+		_shake = lerpf(_shake, 0.0, minf(8.0 * delta, 1.0))
 
 	var k := minf(12.0 * delta, 1.0)
 	position.x = lerpf(position.x, target_x, k)

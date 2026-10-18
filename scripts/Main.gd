@@ -10,9 +10,12 @@ const KILL_DEPTH := -25.0
 var prompt_override := ""
 var prompt_override_until := -1.0
 
+const PauseMenu := preload("res://scripts/PauseMenu.gd")
+
 func _ready() -> void:
 	$GoalPlatform/GoalTrigger.body_entered.connect(_on_goal_reached)
 	_show_temp_prompt("Доберитесь до самой верхней платформы. Не падайте!", 7.0)
+	add_child(PauseMenu.new($Player))
 	# ================= ЗАГОТОВКА ДЛЯ ФОНОВОЙ МУЗЫКИ =================
 	# 1. Положите файл музыки (track.ogg / track.mp3) в папку res://music/
 	# 2. Раскомментируйте строки ниже и впишите имя своего файла:
