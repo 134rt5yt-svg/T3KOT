@@ -16,6 +16,7 @@ color_ramp = SubResource("2")
 seamless = true
 
 [resource]
+texture_filter=0
 albedo_texture = SubResource("3")
 roughness = 0.9
 uv1_scale = Vector3(0.3, 0.3, 0.3)

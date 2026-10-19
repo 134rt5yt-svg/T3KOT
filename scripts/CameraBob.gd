@@ -19,6 +19,8 @@ extends Camera3D
 @export var shake_max := 0.14         # амплитуда тряски при жёстком приземлении
 
 var pitch_offset := 0.0
+## Когда true (режим «посидеть»), боб камеры полностью отдаёт камеру наружному коду.
+var external_control := false
 
 var _time := 0.0
 var _base_position: Vector3
@@ -52,6 +54,8 @@ func wall_kick(side: float) -> void:
 	_roll += -side * 0.14
 
 func _process(delta: float) -> void:
+	if external_control:
+		return
 	var body := get_parent() as CharacterBody3D
 	if body == null:
 		return

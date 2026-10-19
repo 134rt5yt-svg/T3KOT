@@ -27,6 +27,11 @@ const ZOOM_FOV := 62.0
 const DRIFT_YAW := deg_to_rad(7.0)
 const DRIFT_PITCH := deg_to_rad(5.0)
 
+# Режим «посидеть»: камера садится на край платформы.
+const SIT_POS := Vector3(0.0, 0.74, -0.42)
+const SIT_PITCH := -0.34
+const SIT_FOV := 57.0
+
 var _player: CharacterBody3D
 var _camera: Camera3D
 var _sub_vp: SubViewport
@@ -39,6 +44,11 @@ var _game_ui: CanvasLayer
 var _paused := false
 var _settled := false
 var _menu_touch_index := -1
+var _sitting := false
+var _sitting_settled := false
+var _cam_home := Vector3.ZERO
+var _wind: AudioStreamPlayer
+var _sit_hint: Label
 var _base_fov := 80.0
 var _base_cam_yaw := 0.0
 var _base_cam_pitch := 0.0
@@ -64,7 +74,42 @@ func _ready() -> void:
 	_build_pause_button()
 	_build_sub_viewport()
 	_build_menu_rig()
+	_build_sit()
 	_game_ui = _player.get_node_or_null("../UI") as CanvasLayer
+
+func _build_sit() -> void:
+	_cam_home = _camera.position
+	_wind = AudioStreamPlayer.new()
+	# Загружаем в рантайме: preload() уронил бы весь скрипт паузы,
+	# если редактор ещё не импортировал новый файл.
+	if ResourceLoader.exists("res://sounds/wind.wav"):
+		var stream: AudioStream = load("res://sounds/wind.wav")
+		if stream is AudioStreamWAV:
+			var w: AudioStreamWAV = stream
+			w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			w.loop_begin = 0
+			w.loop_end = w.data.size() / 2  # 16-бит моно
+		_wind.stream = stream
+	else:
+		push_warning("PauseMenu: sounds/wind.wav не найден — ветер будет без звука")
+	_wind.volume_db = -60.0
+	add_child(_wind)
+
+	_sit_hint = Label.new()
+	_sit_hint.text = "тап / Esc / пробел — встать"
+	_sit_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sit_hint.add_theme_font_override("font", _pixel_font())
+	_sit_hint.add_theme_font_size_override("font_size", 24)
+	_sit_hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	_sit_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_sit_hint.add_theme_constant_override("outline_size", 6)
+	_sit_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_sit_hint.offset_top = -84.0
+	_sit_hint.offset_bottom = -48.0
+	_sit_hint.offset_left = -220.0
+	_sit_hint.offset_right = 220.0
+	_sit_hint.modulate.a = 0.0
+	add_child(_sit_hint)
 
 func _build_pause_button() -> void:
 	_pause_btn = Button.new()
@@ -137,6 +182,19 @@ func _build_sub_viewport() -> void:
 	hint.add_theme_font_size_override("font_size", 32)
 	hint.add_theme_color_override("font_color", COL_MUT)
 	vbox.add_child(hint)
+
+	# Секретная кнопка: просто посидеть на краю и отдохнуть.
+	var sit_btn := Button.new()
+	sit_btn.text = "посидеть"
+	sit_btn.flat = true
+	sit_btn.focus_mode = Control.FOCUS_NONE
+	sit_btn.add_theme_font_override("font", _pixel_font())
+	sit_btn.add_theme_font_size_override("font_size", 32)
+	sit_btn.add_theme_color_override("font_color", Color(COL_MUT.r, COL_MUT.g, COL_MUT.b, 0.55))
+	sit_btn.add_theme_color_override("font_hover_color", COL_FG)
+	sit_btn.add_theme_color_override("font_pressed_color", COL_FG)
+	sit_btn.pressed.connect(_sit)
+	vbox.add_child(sit_btn)
 
 func _pixel_font() -> Font:
 	if ResourceLoader.exists(FONT_PATH):
@@ -237,7 +295,7 @@ func _build_menu_rig() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	# Текстуру берём напрямую у вьюпорта: ViewportTexture, собранный
 	# вручную по пути узла, надёжно не подключается (даёт magenta-заглушку).
 	mat.albedo_texture = _sub_vp.get_texture()
@@ -276,6 +334,16 @@ func _build_uv_map(mesh: QuadMesh) -> void:
 
 func _input(event: InputEvent) -> void:
 	if _camera == null:
+		return
+	if _sitting:
+		# Любое намеренное действие — встать.
+		var want_up := event.is_action_pressed("ui_cancel") \
+			or event.is_action_pressed("jump") \
+			or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) \
+			or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
+		if want_up:
+			get_viewport().set_input_as_handled()
+			_stand()
 		return
 	if not _paused:
 		if event.is_action_pressed("ui_cancel"):
@@ -405,6 +473,89 @@ func _resume() -> void:
 		_rig.visible = false
 		_sub_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED)
 
+## Секретный режим: сесть на край платформы и слушать ветер.
+func _sit() -> void:
+	if not _paused:
+		return
+	_paused = false
+	_sitting = true
+	_sitting_settled = false
+	_menu_touch_index = -1
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_player.sit_mode = true
+	_player.frozen = true
+	_player.velocity = Vector3.ZERO
+	if _game_ui != null:
+		_game_ui.visible = false
+	_pause_btn.visible = false
+
+	# Лист складывается обратно за край.
+	var swing := create_tween()
+	swing.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	swing.tween_property(_pivot, "rotation:y", SWING_FROM, 0.5) \
+		.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	swing.tween_callback(func() -> void: _rig.visible = false)
+
+	if camera_has_bob():
+		_camera.external_control = true
+
+	# Камера опускается к краю платформы.
+	var move := create_tween()
+	move.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	move.set_parallel(true)
+	move.tween_property(_camera, "position", SIT_POS, 1.4) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	move.tween_property(_camera, "rotation:x", SIT_PITCH, 1.4) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	move.tween_property(_camera, "rotation:z", 0.0, 1.0)
+	move.tween_property(_camera, "fov", SIT_FOV, 1.6) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	move.chain().tween_callback(func() -> void: _sitting_settled = true)
+
+	# Ветер плавно наплывает.
+	_wind.play()
+	var wind_tw := create_tween()
+	wind_tw.tween_property(_wind, "volume_db", -13.0, 2.5)
+
+	# Подсказка появляется, когда камера села.
+	var hint_tw := create_tween()
+	hint_tw.tween_interval(1.4)
+	hint_tw.tween_property(_sit_hint, "modulate:a", 1.0, 0.8)
+
+func _stand() -> void:
+	if not _sitting:
+		return
+	_sitting = false
+	_sitting_settled = false
+	_sit_hint.modulate.a = 0.0
+	var wind_tw := create_tween()
+	wind_tw.tween_property(_wind, "volume_db", -60.0, 1.0)
+	wind_tw.tween_callback(_wind.stop)
+
+	var move := create_tween()
+	move.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	move.set_parallel(true)
+	move.tween_property(_camera, "position", _cam_home, 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	move.tween_property(_camera, "rotation:x", _base_cam_pitch, 0.9) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	move.tween_property(_camera, "rotation:y", _base_cam_yaw, 0.9)
+	move.tween_property(_camera, "rotation:z", 0.0, 0.9)
+	move.tween_property(_camera, "fov", _base_fov, 0.9)
+	move.chain().tween_callback(func() -> void:
+		if camera_has_bob():
+			_camera.external_control = false
+		_player.sit_mode = false
+		_player.frozen = false
+		if _game_ui != null:
+			_game_ui.visible = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED)
+
+func camera_has_bob() -> bool:
+	return "external_control" in _camera
+
 func _restart() -> void:
 	Engine.time_scale = 1.0
 	get_tree().paused = false
@@ -415,7 +566,17 @@ func _quit() -> void:
 	get_tree().quit()
 
 func _process(delta: float) -> void:
-	if not _paused or _camera == null:
+	if _camera == null:
+		return
+	if _sitting:
+		if _sitting_settled:
+			# Сидя: медленное дыхание камеры.
+			var t := Time.get_ticks_msec() / 1000.0
+			_camera.position.y = SIT_POS.y + sin(t * 0.9) * 0.014
+			_camera.position.x = SIT_POS.x + sin(t * 0.5) * 0.006
+			_camera.rotation.z = sin(t * 0.6) * 0.012
+		return
+	if not _paused:
 		return
 	var vp_size := get_viewport().get_visible_rect().size
 	if vp_size.x <= 0.0 or vp_size.y <= 0.0:

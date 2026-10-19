@@ -11,11 +11,40 @@ var prompt_override := ""
 var prompt_override_until := -1.0
 
 const PauseMenu := preload("res://scripts/PauseMenu.gd")
+const PS1FX := preload("res://scripts/PS1.gd")
+const RainFX := preload("res://scripts/Rain.gd")
+const RainScreenFX := preload("res://scripts/RainScreen.gd")
+const PuddlesFX := preload("res://scripts/Puddles.gd")
+const LightningFX := preload("res://scripts/Lightning.gd")
+const WindFX := preload("res://scripts/Wind.gd")
 
 func _ready() -> void:
 	$GoalPlatform/GoalTrigger.body_entered.connect(_on_goal_reached)
 	_show_temp_prompt("Доберитесь до самой верхней платформы. Не падайте!", 7.0)
+	_apply_ps1_font()
 	add_child(PauseMenu.new($Player))
+	add_child(PS1FX.new())
+	add_child(RainScreenFX.new())
+	var rain := RainFX.new($Player)
+	add_child(rain)
+	add_child(PuddlesFX.new())
+	add_child(LightningFX.new($Player))
+	add_child(WindFX.new($Player, rain))
+
+## Весь игровой текст — пиксельный шрифт без сглаживания.
+func _apply_ps1_font() -> void:
+	if not ResourceLoader.exists("res://resources/fonts/PixelifySans.ttf"):
+		return
+	var font: FontFile = load("res://resources/fonts/PixelifySans.ttf")
+	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	font.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	font.hinting = TextServer.HINTING_NONE
+	font.generate_mipmaps = false
+	var theme := Theme.new()
+	theme.default_font = font
+	for child in $UI.get_children():
+		if child is Control:
+			(child as Control).theme = theme
 	# ================= ЗАГОТОВКА ДЛЯ ФОНОВОЙ МУЗЫКИ =================
 	# 1. Положите файл музыки (track.ogg / track.mp3) в папку res://music/
 	# 2. Раскомментируйте строки ниже и впишите имя своего файла:

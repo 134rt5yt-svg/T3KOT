@@ -17,9 +17,9 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="T3KOT"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
-config/icon="res://icon.png"
-boot_splash/show_image=false
 boot_splash/bg_color=Color(0.8, 0.8, 0.85, 1)
+boot_splash/show_image=false
+config/icon="res://icon.png"
 
 [display]
 
@@ -73,3 +73,4 @@ interact={
 
 textures/vram_compression/import_etc2_astc=true
 lights_and_shadows/directional_shadow/size=2048
+scaling_3d/scale=0.5

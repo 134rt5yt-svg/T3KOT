@@ -16,6 +16,10 @@ const SND_JUMP := preload("res://sounds/jump.ogg")
 @onready var camera: Camera3D = $Camera3D
 
 var frozen := false
+## Режим «посидеть»: камера под управлением паузы, ввод игнорируется.
+var sit_mode := false
+## Горизонтальный снос от ветра (заполняет Wind.gd, применяется в воздухе).
+var wind_accel := Vector3.ZERO
 var last_safe_position := Vector3.ZERO
 var pitch := 0.0
 var _was_on_floor := true
@@ -73,7 +77,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
-	camera.rotation.x = pitch + camera.pitch_offset
+	if not sit_mode:
+		camera.rotation.x = pitch + camera.pitch_offset
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	var input_dir := Vector2.ZERO
@@ -89,6 +94,10 @@ func _physics_process(delta: float) -> void:
 	if not frozen and Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 		_play_jump()
+	# Порыв ветра сносит только в воздухе.
+	if not is_on_floor():
+		velocity.x += wind_accel.x * delta
+		velocity.z += wind_accel.z * delta
 	move_and_slide()
 	if is_on_floor():
 		last_safe_position = global_position
