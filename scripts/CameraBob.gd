@@ -18,6 +18,16 @@ extends Camera3D
 @export var step_bump := 0.03         # толчок вниз на каждый "шаг" боба
 @export var shake_max := 0.14         # амплитуда тряски при жёстком приземлении
 
+## Оптический зум «старой камеры»: колесо мыши, 1x..10x.
+const ZOOM_STEP := 1.22
+const ZOOM_MAX := 10.0
+var zoom := 1.0
+
+func adjust_zoom(steps: int) -> float:
+	# Возвращает новую кратность (для звука снаружи).
+	zoom = clampf(zoom * pow(ZOOM_STEP, steps), 1.0, ZOOM_MAX)
+	return zoom
+
 var pitch_offset := 0.0
 ## Когда true (режим «посидеть»), боб камеры полностью отдаёт камеру наружному коду.
 var external_control := false
@@ -129,6 +139,6 @@ func _process(delta: float) -> void:
 	_roll = lerpf(_roll, target_roll, minf(8.0 * delta, 1.0))
 	rotation.z = _roll
 
-	# --- FOV: разгон при падении + кик на прыжке ---
+	# --- FOV: разгон при падении + кик на прыжке + оптический зум ---
 	var fall := clampf(-body.velocity.y, 0.0, 25.0)
-	fov = lerpf(fov, _base_fov + fall / 25.0 * fall_fov_max + _fov_kick, minf(6.0 * delta, 1.0))
+	fov = lerpf(fov, (_base_fov + fall / 25.0 * fall_fov_max + _fov_kick) / zoom, minf(6.0 * delta, 1.0))

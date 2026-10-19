@@ -37,6 +37,9 @@ func _update_layout() -> void:
 	_hud.queue_redraw()
 
 func _input(event: InputEvent) -> void:
+	# В паузе/сидении тач-управление не работает.
+	if _player != null and (_player.frozen or _player.sit_mode):
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:

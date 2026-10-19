@@ -12,7 +12,6 @@ const SND_LAND_LIGHT := preload("res://sounds/land_light.ogg")
 const SND_LAND_MEDIUM := preload("res://sounds/land_medium.ogg")
 const SND_LAND_HEAVY := preload("res://sounds/land_heavy.ogg")
 const SND_JUMP := preload("res://sounds/jump.ogg")
-
 @onready var camera: Camera3D = $Camera3D
 
 var frozen := false
@@ -26,6 +25,7 @@ var _was_on_floor := true
 var _fall_speed := 0.0
 var _sfx_land: AudioStreamPlayer
 var _sfx_jump: AudioStreamPlayer
+var _sfx_zoom: AudioStreamPlayer
 
 func _ready() -> void:
 	add_to_group("player")
@@ -41,6 +41,12 @@ func _ready() -> void:
 	_sfx_jump = AudioStreamPlayer.new()
 	_sfx_jump.bus = "Master"
 	add_child(_sfx_jump)
+	_sfx_zoom = AudioStreamPlayer.new()
+	if ResourceLoader.exists("res://sounds/zoom.wav"):
+		_sfx_zoom.stream = load("res://sounds/zoom.wav")
+	_sfx_zoom.bus = "Master"
+	_sfx_zoom.volume_db = -14.0
+	add_child(_sfx_zoom)
 
 func _play_land() -> void:
 	# Сила удара выбирает звук и его громкость.
@@ -62,14 +68,17 @@ func _play_jump() -> void:
 func apply_touch_look(relative: Vector2) -> void:
 	# Прямой путь для сенсорного обзора; не создаём искусственные mouse events.
 	var scale_factor := get_viewport().get_visible_rect().size.x / 1280.0
-	var sens := MOUSE_SENSITIVITY * clampf(scale_factor, 0.65, 1.6) * 1.4
+	var sens: float = MOUSE_SENSITIVITY * clampf(scale_factor, 0.65, 1.6) * 1.4 / camera.zoom
 	rotate_y(-relative.x * sens)
 	pitch = clampf(pitch - relative.y * sens, deg_to_rad(-85.0), deg_to_rad(85.0))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
-		pitch = clampf(pitch - event.relative.y * MOUSE_SENSITIVITY, deg_to_rad(-85.0), deg_to_rad(85.0))
+		# В зуме обзор пропорционально медленнее — как у настоящей камеры.
+		var sens: float = MOUSE_SENSITIVITY / camera.zoom
+		rotate_y(-event.relative.x * sens)
+		pitch = clampf(pitch - event.relative.y * sens, deg_to_rad(-85.0), deg_to_rad(85.0))
+	# Зум колесом доступен только в режиме камеры (CameraMode.gd).
 	elif event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

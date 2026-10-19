@@ -46,6 +46,8 @@ var _settled := false
 var _menu_touch_index := -1
 var _sitting := false
 var _sitting_settled := false
+var _sit_block_until := 0.0
+var _sit_block_index := -1
 var _cam_home := Vector3.ZERO
 var _wind: AudioStreamPlayer
 var _sit_hint: Label
@@ -336,12 +338,18 @@ func _input(event: InputEvent) -> void:
 	if _camera == null:
 		return
 	if _sitting:
-		# Любое намеренное действие — встать.
+		# Случайные тачи (в т.ч. хвост тапа, открывшего сидение) игнорируем.
+		var now := Time.get_ticks_msec() / 1000.0
+		var is_touch := event is InputEventScreenTouch
+		var touch_pressed := is_touch and (event as InputEventScreenTouch).pressed
+		var touch_index := (event as InputEventScreenTouch).index if is_touch else -1
+		var blocked := now < _sit_block_until \
+			or (touch_pressed and touch_index == _sit_block_index)
 		var want_up := event.is_action_pressed("ui_cancel") \
 			or event.is_action_pressed("jump") \
 			or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) \
-			or (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
-		if want_up:
+			or touch_pressed
+		if want_up and not blocked:
 			get_viewport().set_input_as_handled()
 			_stand()
 		return
@@ -481,6 +489,9 @@ func _sit() -> void:
 	_sitting = true
 	_sitting_settled = false
 	_menu_touch_index = -1
+	# Хвост тапа по кнопке не должен сразу же поднять игрока.
+	_sit_block_until = Time.get_ticks_msec() / 1000.0 + 0.6
+	_sit_block_index = -1
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -551,7 +562,8 @@ func _stand() -> void:
 		_player.frozen = false
 		if _game_ui != null:
 			_game_ui.visible = true
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED)
+		# «Посидеть» — подстраница паузы: после вставания меню возвращается.
+		_open())
 
 func camera_has_bob() -> bool:
 	return "external_control" in _camera
